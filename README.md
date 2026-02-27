@@ -29,11 +29,16 @@ Production-ready AI assistant for university administrative Q&A with document-gr
                                                 │
                                   data/documents + data/vectorstore
 ```
+## 🖼️ Demo
+
+![Demo 1](Demo%201.png)
+![Demo 2](Demo%202.png)
+![Demo 3](Demo%203.png)
 
 ## 2) Quick Start
 
 ```bash
-git clone <your-repo-url>
+git clone <(https://github.com/AhmedBenRahma/UNI_help.git)>
 cp .env.example .env
 docker-compose up --build
 ```
