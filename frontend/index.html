@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>UniHelp AI Assistant</title>
+  <style>
+    :root {
+      --bg: #0f0320;
+      --surface: #1c1030;
+      --surface-2: #24153f;
+      --accent: #8b5cf6;
+      --accent-2: #6d28d9;
+      --text: #f4edff;
+      --muted: #bdaee0;
+      --good: #22c55e;
+      --warn: #eab308;
+      --bad: #ef4444;
+      --border: #3a245f;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    .app {
+      width: 100%;
+      max-width: 980px;
+      display: flex;
+      flex-direction: column;
+      height: calc(100vh - 32px);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+
+    .header {
+      padding: 16px;
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(90deg, #1a0f2e, #23143d);
+      font-weight: 700;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .status {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .bubble {
+      max-width: 80%;
+      padding: 12px 14px;
+      border-radius: 12px;
+      line-height: 1.45;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .bubble.user {
+      align-self: flex-end;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: white;
+      border-bottom-right-radius: 4px;
+    }
+
+    .bubble.bot {
+      align-self: flex-start;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-bottom-left-radius: 4px;
+    }
+
+    .meta {
+      margin-top: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .confidence-wrap {
+      display: grid;
+      gap: 4px;
+    }
+
+    .confidence-label {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .confidence-bar {
+      height: 8px;
+      border-radius: 999px;
+      background: #2b1947;
+      overflow: hidden;
+    }
+
+    .confidence-fill {
+      height: 100%;
+      width: 0;
+      transition: width 0.3s ease;
+    }
+
+    .sources {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .chip {
+      background: #2f1b4e;
+      color: #e8d8ff;
+      border: 1px solid #553081;
+      padding: 6px 8px;
+      border-radius: 999px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+
+    .source-panel {
+      margin-top: 8px;
+      padding: 10px;
+      border: 1px solid var(--border);
+      background: #170c2b;
+      border-radius: 8px;
+      font-size: 12px;
+      display: none;
+    }
+
+    .typing {
+      align-self: flex-start;
+      display: inline-flex;
+      gap: 6px;
+      padding: 10px 12px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #d8c5ff;
+      animation: pulse 1s infinite ease-in-out;
+    }
+
+    .dot:nth-child(2) { animation-delay: 0.2s; }
+    .dot:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes pulse {
+      0%, 80%, 100% { opacity: 0.2; transform: translateY(0); }
+      40% { opacity: 1; transform: translateY(-2px); }
+    }
+
+    .composer {
+      border-top: 1px solid var(--border);
+      padding: 12px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      background: #170c2b;
+    }
+
+    textarea {
+      resize: none;
+      min-height: 48px;
+      max-height: 140px;
+      border-radius: 10px;
+      border: 1px solid #4d2e7d;
+      padding: 10px 12px;
+      background: #120826;
+      color: var(--text);
+      font-size: 14px;
+      outline: none;
+    }
+
+    button {
+      border: none;
+      border-radius: 10px;
+      padding: 10px 14px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: white;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    .email-btn {
+      margin-top: 8px;
+      background: #3b2560;
+      border: 1px solid #6f45a7;
+      width: fit-content;
+    }
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.55);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      padding: 16px;
+      z-index: 1000;
+    }
+
+    .modal-content {
+      width: 100%;
+      max-width: 700px;
+      background: #140a28;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .secondary {
+      background: #2f1c4e;
+      border: 1px solid #5e3f8f;
+    }
+
+    select, input {
+      width: 100%;
+      border-radius: 8px;
+      border: 1px solid #4d2e7d;
+      padding: 8px;
+      background: #120826;
+      color: var(--text);
+    }
+
+    @media (max-width: 768px) {
+      .app { height: calc(100vh - 20px); }
+      .bubble { max-width: 92%; }
+      .composer { grid-template-columns: 1fr; }
+      .composer button { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="header">
+      <span>UniHelp AI Assistant</span>
+      <span class="status" id="healthStatus">Checking health...</span>
+    </div>
+
+    <div class="messages" id="messages"></div>
+
+    <div class="composer">
+      <textarea id="input" placeholder="Ask about procedures, deadlines, or documents..."></textarea>
+      <button id="sendBtn">Send</button>
+    </div>
+  </div>
+
+  <div class="modal" id="emailModal">
+    <div class="modal-content">
+      <strong>Generate Email Draft</strong>
+      <select id="emailType">
+        <option value="attestation_request">Attestation Request</option>
+        <option value="internship_request">Internship Request</option>
+        <option value="grade_complaint">Grade Complaint</option>
+        <option value="absence_justification">Absence Justification</option>
+        <option value="scholarship_request">Scholarship Request</option>
+      </select>
+      <input id="studentContext" placeholder="Optional context (student ID, class, dates...)" />
+      <input id="emailSubject" placeholder="Subject" readonly />
+      <textarea id="emailBody" rows="10" placeholder="Email body" readonly></textarea>
+      <div class="modal-actions">
+        <button id="generateEmailBtn">Generate</button>
+        <button id="copyEmailBtn" class="secondary">Copy</button>
+        <button id="closeModalBtn" class="secondary">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const apiBase = "";
+    const sessionId = crypto.randomUUID();
+    const messagesEl = document.getElementById("messages");
+    const inputEl = document.getElementById("input");
+    const sendBtn = document.getElementById("sendBtn");
+    const healthStatusEl = document.getElementById("healthStatus");
+
+    const modalEl = document.getElementById("emailModal");
+    const emailTypeEl = document.getElementById("emailType");
+    const studentContextEl = document.getElementById("studentContext");
+    const emailSubjectEl = document.getElementById("emailSubject");
+    const emailBodyEl = document.getElementById("emailBody");
+    const generateEmailBtn = document.getElementById("generateEmailBtn");
+    const copyEmailBtn = document.getElementById("copyEmailBtn");
+    const closeModalBtn = document.getElementById("closeModalBtn");
+
+    let lastAnswer = null;
+
+    function appendBubble(text, type) {
+      const bubble = document.createElement("div");
+      bubble.className = `bubble ${type}`;
+      bubble.textContent = text;
+      messagesEl.appendChild(bubble);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+      return bubble;
+    }
+
+    function addTypingIndicator() {
+      const typing = document.createElement("div");
+      typing.className = "typing";
+      typing.innerHTML = `<span class="dot"></span><span class="dot"></span><span class="dot"></span>`;
+      messagesEl.appendChild(typing);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+      return typing;
+    }
+
+    function confidenceColor(conf) {
+      if (conf > 0.8) return "var(--good)";
+      if (conf > 0.5) return "var(--warn)";
+      return "var(--bad)";
+    }
+
+    function renderSources(container, sources) {
+      if (!sources || !sources.length) return;
+
+      const chipWrap = document.createElement("div");
+      chipWrap.className = "sources";
+
+      sources.forEach((source, index) => {
+        const chip = document.createElement("button");
+        chip.className = "chip";
+        chip.textContent = `${source.filename} • p.${source.page}`;
+
+        const panel = document.createElement("div");
+        panel.className = "source-panel";
+        panel.id = `source-${Date.now()}-${index}`;
+        panel.textContent = `${source.excerpt}\n\nScore: ${source.score}`;
+
+        chip.addEventListener("click", () => {
+          panel.style.display = panel.style.display === "block" ? "none" : "block";
+        });
+
+        chipWrap.appendChild(chip);
+        container.appendChild(panel);
+      });
+
+      container.insertBefore(chipWrap, container.firstChild.nextSibling);
+    }
+
+    function renderBotMessage(payload) {
+      const bubble = appendBubble(payload.answer, "bot");
+      const meta = document.createElement("div");
+      meta.className = "meta";
+
+      const confidenceWrap = document.createElement("div");
+      confidenceWrap.className = "confidence-wrap";
+      const label = document.createElement("div");
+      label.className = "confidence-label";
+      label.textContent = `Confidence: ${(payload.confidence * 100).toFixed(1)}%`;
+
+      const bar = document.createElement("div");
+      bar.className = "confidence-bar";
+      const fill = document.createElement("div");
+      fill.className = "confidence-fill";
+      fill.style.width = `${Math.max(0, Math.min(100, payload.confidence * 100))}%`;
+      fill.style.background = confidenceColor(payload.confidence);
+      bar.appendChild(fill);
+
+      confidenceWrap.appendChild(label);
+      confidenceWrap.appendChild(bar);
+      meta.appendChild(confidenceWrap);
+
+      renderSources(meta, payload.sources);
+
+      if (payload.has_answer) {
+        const emailButton = document.createElement("button");
+        emailButton.className = "email-btn";
+        emailButton.textContent = "Generate Email";
+        emailButton.addEventListener("click", () => {
+          lastAnswer = payload;
+          emailSubjectEl.value = "";
+          emailBodyEl.value = "";
+          modalEl.style.display = "flex";
+        });
+        meta.appendChild(emailButton);
+      }
+
+      bubble.appendChild(meta);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    async function sendMessage() {
+      const message = inputEl.value.trim();
+      if (!message) return;
+
+      appendBubble(message, "user");
+      inputEl.value = "";
+      const typing = addTypingIndicator();
+
+      try {
+        const response = await fetch(`${apiBase}/api/chat`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message, session_id: sessionId })
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+
+        const payload = await response.json();
+        typing.remove();
+        renderBotMessage(payload);
+      } catch (error) {
+        typing.remove();
+        appendBubble(`Request failed: ${error.message}`, "bot");
+      }
+    }
+
+    async function generateEmailDraft() {
+      if (!lastAnswer) return;
+      generateEmailBtn.disabled = true;
+
+      try {
+        const response = await fetch(`${apiBase}/api/chat`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            message: "Generate an email draft based on previous answer",
+            session_id: sessionId,
+            generate_email: true,
+            email_type: emailTypeEl.value,
+            student_context: studentContextEl.value
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+
+        const payload = await response.json();
+        if (!payload.email_draft) {
+          throw new Error("No email draft returned.");
+        }
+
+        emailSubjectEl.value = payload.email_draft.subject;
+        emailBodyEl.value = payload.email_draft.body;
+      } catch (error) {
+        emailSubjectEl.value = "";
+        emailBodyEl.value = `Error generating email: ${error.message}`;
+      } finally {
+        generateEmailBtn.disabled = false;
+      }
+    }
+
+    async function checkHealth() {
+      try {
+        const response = await fetch(`${apiBase}/api/health`);
+        const payload = await response.json();
+        healthStatusEl.textContent = payload.status === "ok"
+          ? `Online • ${payload.model}`
+          : "Degraded";
+      } catch {
+        healthStatusEl.textContent = "Offline";
+      }
+    }
+
+    sendBtn.addEventListener("click", sendMessage);
+    inputEl.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" && !event.shiftKey) {
+        event.preventDefault();
+        sendMessage();
+      }
+    });
+    generateEmailBtn.addEventListener("click", generateEmailDraft);
+    copyEmailBtn.addEventListener("click", async () => {
+      const text = `Subject: ${emailSubjectEl.value}\n\n${emailBodyEl.value}`;
+      await navigator.clipboard.writeText(text);
+      copyEmailBtn.textContent = "Copied";
+      setTimeout(() => { copyEmailBtn.textContent = "Copy"; }, 1200);
+    });
+    closeModalBtn.addEventListener("click", () => {
+      modalEl.style.display = "none";
+    });
+    modalEl.addEventListener("click", (event) => {
+      if (event.target === modalEl) {
+        modalEl.style.display = "none";
+      }
+    });
+
+    checkHealth();
+    appendBubble("Hello! I am UniHelp. Ask me about official university procedures and documents.", "bot");
+  </script>
+</body>
+</html>
